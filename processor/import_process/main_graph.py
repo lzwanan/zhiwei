@@ -8,15 +8,15 @@ import json
 from langgraph.constants import END
 from langgraph.graph.state import CompiledStateGraph, StateGraph
 
-from knowledge.processor.import_process.base import setup_logging
-from knowledge.processor.import_process.nodes.bge_embedding import BgeEmbeddingChunksNode
-from knowledge.processor.import_process.nodes.ducment_split import DocumentSplitNode
-from knowledge.processor.import_process.nodes.entry import EntryNode
-from knowledge.processor.import_process.nodes.import_milvus import ImportMilvusNode
-from knowledge.processor.import_process.nodes.item_name_recognition import ItemNameRecognitionNode
-from knowledge.processor.import_process.nodes.md_img import MarkDownImageNode
-from knowledge.processor.import_process.nodes.pdf_to_md import PdfToMdNode
-from knowledge.processor.import_process.state import ImportGraphState, create_default_state
+from processor.import_process.base import setup_logging
+from processor.import_process.nodes.bge_embedding import BgeEmbeddingChunksNode
+from processor.import_process.nodes.ducment_split import DocumentSplitNode
+from processor.import_process.nodes.entry import EntryNode
+from processor.import_process.nodes.import_milvus import ImportMilvusNode
+from processor.import_process.nodes.item_name_recognition import ItemNameRecognitionNode
+from processor.import_process.nodes.md_img import MarkDownImageNode
+from processor.import_process.nodes.pdf_to_md import PdfToMdNode
+from processor.import_process.state import ImportGraphState, create_default_state
 
 
 def import_router(state: ImportGraphState) -> str:

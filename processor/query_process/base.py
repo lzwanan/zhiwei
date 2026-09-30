@@ -6,10 +6,10 @@ from abc import ABC, abstractmethod
 from typing import TypeVar, Optional
 import logging
 
-from knowledge.processor.query_process.config import QueryConfig, get_config
-from knowledge.processor.query_process.exceptions import QueryProcessError
-from knowledge.utils.sse_util import push_sse_event, SSEEvent
-from knowledge.utils.task_util import add_running_task, add_done_task, get_task_status, get_running_task_list, \
+from processor.query_process.config import QueryConfig, get_config
+from processor.query_process.exceptions import QueryProcessError
+from utils.sse_util import push_sse_event, SSEEvent
+from utils.task_util import add_running_task, add_done_task, get_task_status, get_running_task_list, \
     get_done_task_list
 
 

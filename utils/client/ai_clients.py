@@ -5,7 +5,7 @@ from langchain_openai import ChatOpenAI
 from openai import OpenAI
 from pymilvus.model.hybrid import BGEM3EmbeddingFunction
 from FlagEmbedding import FlagReranker
-from knowledge.utils.client.base import BaseClientManager, logger
+from utils.client.base import BaseClientManager, logger
 import logging
 from typing import Optional
 

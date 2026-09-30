@@ -7,7 +7,7 @@ from minio import Minio
 from pymilvus import MilvusClient
 from pymongo import MongoClient
 from pymongo.database import Database
-from knowledge.utils.client.base import BaseClientManager
+from utils.client.base import BaseClientManager
 
 logger = logging.getLogger(__name__)
 load_dotenv()
