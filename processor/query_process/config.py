@@ -49,7 +49,7 @@ class QueryConfig:
         default_factory=lambda: int(os.getenv("HYDE_SEARCH_LIMIT", "5"))
     )
 
-    # ==================== 商品确认节点配置 ====================
+    # ==================== 项目确认节点配置 ====================
     item_name_high_confidence: float = field(
         default_factory=lambda: float(os.getenv("ITEM_NAME_HIGH_CONFIDENCE", "0.7"))
     )

@@ -45,7 +45,7 @@ def save_chat_message(
         "role": role,  # 角色
         "text": text,  # 内容
         "rewritten_query": rewritten_query,  # 重写后问题
-        "item_names": item_names or [],  # 商品名列表
+        "item_names": item_names or [],  # 项目名列表
         "ts": ts,  # 时间戳
     }
 
