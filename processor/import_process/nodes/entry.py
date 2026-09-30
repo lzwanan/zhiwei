@@ -77,6 +77,6 @@ if __name__ == "__main__":
     }
     entity = EntryNode(state)
 
-    process_state = entity.process(state)
+    process_state = entity(state)
 
     print(json.dumps(process_state, indent=4, ensure_ascii=False))
