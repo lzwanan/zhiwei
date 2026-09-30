@@ -48,7 +48,7 @@ def import_router(state: ImportGraphState) -> str:
     elif state.get("is_pdf_read_enabled"):
         return "pdf"
     else:
-        return END
+        return "END"
 
 
 def create_import_graph() -> CompiledStateGraph:
@@ -85,6 +85,7 @@ def create_import_graph() -> CompiledStateGraph:
         {
             "pdf": "pdf_to_md_node",
             "md": "md_img_node",
+            "END": END
         },
     )
 
@@ -134,3 +135,72 @@ if __name__ == "__main__":
     print("-" * 50)
     print("图结构: ")
     import_graph.get_graph().print_ascii()
+    """
+        运行节点: entry_node
+        运行节点: pdf_to_md_node
+        运行节点: document_split_node
+        运行节点: item_name_rec_node
+        运行节点: bge_embedding_node
+        运行节点: import_milvus_node
+        {
+          "task_id": "",
+          "is_md_read_enabled": false,
+          "is_pdf_read_enabled": true,
+          "import_file_path": "../test/docs/H3C-LA2608.pdf",
+          "file_dir": "../test/temp_dir",
+          "pdf_path": "",
+          "md_path": "",
+          "file_title": "",
+          "item_name": "",
+          "md_content": "",
+          "chunks": []
+        }
+        --------------------------------------------------
+        图结构: 
+                                      +-----------+                        
+                                      | __start__ |                        
+                                      +-----------+                        
+                                             *                             
+                                             *                             
+                                             *                             
+                                      +------------+                       
+                                      | entry_node |.                      
+                                 .....+------------+ ....                  
+                            .....           .            .....             
+                       .....               .                  .....        
+                    ...                    .                       ....    
+        +-------------+           +----------------+                   ... 
+        | md_img_node |           | pdf_to_md_node |                     . 
+        +-------------+           +----------------+                     . 
+                      **            **                                   . 
+                        **        **                                     . 
+                          **    **                                       . 
+                  +---------------------+                                . 
+                  | document_split_node |                                . 
+                  +---------------------+                                . 
+                             *                                           . 
+                             *                                           . 
+                             *                                           . 
+                  +--------------------+                                 . 
+                  | item_name_rec_node |                                 . 
+                  +--------------------+                                 . 
+                             *                                           . 
+                             *                                           . 
+                             *                                           . 
+                  +--------------------+                                 . 
+                  | bge_embedding_node |                                 . 
+                  +--------------------+                                 . 
+                             *                                           . 
+                             *                                           . 
+                             *                                           . 
+                  +--------------------+                               ... 
+                  | import_milvus_node |                           ....    
+                  +--------------------+                      .....        
+                                    ***                  .....             
+                                       **            ....                  
+                                         **       ...                      
+                                        +---------+                        
+                                        | __end__ |                        
+                                        +---------+                        
+
+    """

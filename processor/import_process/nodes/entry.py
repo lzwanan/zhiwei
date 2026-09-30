@@ -6,4 +6,4 @@ class EntryNode(BaseNode):
     name = "entry_node"
 
     def process(self, state: ImportGraphState) -> ImportGraphState:
-        pass
+        return state

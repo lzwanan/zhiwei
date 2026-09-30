@@ -6,4 +6,4 @@ class ImportMilvusNode(BaseNode):
     name = "import_milvus_node"
 
     def process(self, state: ImportGraphState) -> ImportGraphState:
-        pass
+        return state

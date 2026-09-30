@@ -6,4 +6,4 @@ class DocumentSplitNode(BaseNode):
     name = "document_split_node"
 
     def process(self, state: ImportGraphState) -> ImportGraphState:
-        pass
+        return state

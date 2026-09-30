@@ -6,4 +6,4 @@ class BgeEmbeddingNode(BaseNode):
     name = "bge_embedding_node"
 
     def process(self, state: ImportGraphState) -> ImportGraphState:
-        pass
+        return state

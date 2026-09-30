@@ -6,4 +6,4 @@ class ItemNameRecNode(BaseNode):
     name = "item_name_rec_node"
 
     def process(self, state: ImportGraphState) -> ImportGraphState:
-        pass
+        return state

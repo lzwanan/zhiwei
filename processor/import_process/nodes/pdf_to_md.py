@@ -6,4 +6,4 @@ class PdfToMdNode(BaseNode):
     name = "pdf_to_md_node"
 
     def process(self, state: ImportGraphState) -> ImportGraphState:
-        pass
+        return state
