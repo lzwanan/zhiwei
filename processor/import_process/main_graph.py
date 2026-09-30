@@ -21,6 +21,9 @@
                                               v
                                              END
 """
+import json
+
+from langgraph.constants import END
 from langgraph.graph.state import CompiledStateGraph, StateGraph
 
 from processor.import_process.nodes.bge_embedding import BgeEmbeddingNode
@@ -30,6 +33,22 @@ from processor.import_process.nodes.import_milvus import ImportMilvusNode
 from processor.import_process.nodes.item_name_recognition import ItemNameRecNode
 from processor.import_process.nodes.md_img import MdImgNode
 from processor.import_process.nodes.pdf_to_md import PdfToMdNode
+from processor.import_process.state import ImportGraphState, create_default_state
+
+
+def import_router(state: ImportGraphState) -> str:
+    """
+        根据状态路由，返回下一个节点
+
+    :param state: 当前状态图
+    :return: 下一个节点
+    """
+    if state.get("is_md_read_enabled"):
+        return "md"
+    elif state.get("is_pdf_read_enabled"):
+        return "pdf"
+    else:
+        return END
 
 
 def create_import_graph() -> CompiledStateGraph:
@@ -40,7 +59,7 @@ def create_import_graph() -> CompiledStateGraph:
     """
 
     # 1. 创建
-    graph = StateGraph()
+    graph = StateGraph(ImportGraphState)
 
     # 2. 设置开始节点
     graph.set_entry_point("entry_node")
@@ -56,8 +75,62 @@ def create_import_graph() -> CompiledStateGraph:
         "import_milvus_node": ImportMilvusNode(),
     }
 
-    # 4. 添加边
+    for name, node in nodes.items():
+        graph.add_node(name, node)
+
+    # 4. 添加条件边
+    graph.add_conditional_edges(
+        "entry_node",
+        import_router,
+        {
+            "pdf": "pdf_to_md_node",
+            "md": "md_img_node",
+        },
+    )
+
+    # 5. 添加顺序边
+    graph.add_edge("pdf_to_md_node", "document_split_node")
+    graph.add_edge("md_img_node", "document_split_node")
+    graph.add_edge("document_split_node", "item_name_rec_node")
+    graph.add_edge("item_name_rec_node", "bge_embedding_node")
+    graph.add_edge("bge_embedding_node", "import_milvus_node")
+    graph.add_edge("import_milvus_node", END)
 
     # 5. 编译成图对象
+    return graph.compile()
 
-    return None
+
+import_graph = create_import_graph()
+
+
+def run_import_graph(import_file_path: str, file_dir: str) -> dict:
+    state = {
+        "is_pdf_read_enabled": True,
+        "is_md_read_enabled": False,
+        "file_dir": file_dir,
+        "import_file_path": import_file_path
+    }
+    init_state = create_default_state(**state)
+
+    final_state = None
+    for event in import_graph.stream(init_state):
+        for node_name, state in event.items():
+            print(f"运行节点: {node_name}")
+            final_state = state
+
+    return final_state
+
+
+if __name__ == "__main__":
+    import_file_path = r"../test/docs/H3C-LA2608.pdf"
+    file_dir = r"../test/temp_dir"
+
+    # 验证导入流程
+    final_state = run_import_graph(import_file_path, file_dir)
+
+    print(json.dumps(final_state, indent=2, ensure_ascii=False))
+
+    # 打印图结构
+    print("-" * 50)
+    print("图结构: ")
+    import_graph.get_graph().print_ascii()
