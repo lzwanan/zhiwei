@@ -90,7 +90,7 @@ def create_import_graph() -> CompiledStateGraph:
     )
 
     # 5. 添加顺序边
-    graph.add_edge("pdf_to_md_node", "document_split_node")
+    graph.add_edge("pdf_to_md_node", "md_img_node")
     graph.add_edge("md_img_node", "document_split_node")
     graph.add_edge("document_split_node", "item_name_rec_node")
     graph.add_edge("item_name_rec_node", "bge_embedding_node")
