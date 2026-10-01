@@ -42,8 +42,8 @@ class DocumentSplitError(ImportProcessError):
     pass
 
 
-class MinioError(StorageError):
-    """MinIO 存储错误"""
+class OssError(StorageError):
+    """阿里云 OSS 存储错误"""
     pass
 
 
@@ -60,6 +60,6 @@ __all__ = [
     "LLMError",
     "StorageError",
     "MilvusError",
-    "MinioError",
+    "OssError",
     "ValidationError",
 ]

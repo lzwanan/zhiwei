@@ -1,4 +1,4 @@
-minio
+oss2
 langchain-openai
 langgraph
 grandalf

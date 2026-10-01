@@ -50,23 +50,24 @@ def test_mongodb():
         return False
 
 
-def test_minio():
-    """测试 MinIO 连接"""
-    print("测试 MinIO 连接...")
+def test_oss():
+    """测试 阿里云 OSS 连接"""
+    print("测试 阿里云 OSS 连接...")
     try:
-        from minio import Minio
-        client = Minio(
-            os.getenv("MINIO_ENDPOINT", "127.0.0.1:9000"),
-            access_key=os.getenv("MINIO_ACCESS_KEY", "minioadmin"),
-            secret_key=os.getenv("MINIO_SECRET_KEY", "minioadmin"),
-            secure=False
+        import oss2
+        auth = oss2.Auth(
+            os.getenv("OSS_ACCESS_KEY_ID", ""),
+            os.getenv("OSS_ACCESS_KEY_SECRET", ""),
         )
-        buckets = client.list_buckets()
-        bucket_names = [b.name for b in buckets]
-        print(f"  ✓ MinIO 连接成功，存储桶: {bucket_names}")
+        service = oss2.Service(
+            auth,
+            os.getenv("OSS_ENDPOINT", "oss-cn-hangzhou.aliyuncs.com"),
+        )
+        bucket_names = [b.name for b in oss2.BucketIterator(service)]
+        print(f"  ✓ 阿里云 OSS 连接成功，存储桶: {bucket_names}")
         return True
     except Exception as e:
-        print(f"  ✗ MinIO 连接失败: {e}")
+        print(f"  ✗ 阿里云 OSS 连接失败: {e}")
         return False
 
 
@@ -78,7 +79,7 @@ def main():
     results = {
         "Milvus": test_milvus(),
         "MongoDB": test_mongodb(),
-        "MinIO": test_minio(),
+        "OSS": test_oss(),
     }
 
     print("\n" + "=" * 50)
@@ -115,15 +116,15 @@ if __name__ == "__main__":
   ✓ Milvus 连接成功，版本: pkg/v2.5.5
 测试 MongoDB 连接...
   ✓ MongoDB 连接成功，数据库列表: ['admin', 'config', 'kb', 'local', 'users']
-测试 MinIO 连接...
-  ✓ MinIO 连接成功，存储桶: ['knowledge-base-files']
+测试 阿里云 OSS 连接...
+  ✓ 阿里云 OSS 连接成功，存储桶: ['knowledge-base-files']
 
 ==================================================
 测试结果汇总
 ==================================================
   Milvus: ✓ 通过
   MongoDB: ✓ 通过
-  MinIO: ✓ 通过
+  OSS: ✓ 通过
 ==================================================
 所有服务连接正常！
 

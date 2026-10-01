@@ -2,8 +2,8 @@ import logging
 import threading
 from typing import Optional
 
+import oss2
 from dotenv import load_dotenv
-from minio import Minio
 from pymilvus import MilvusClient
 from pymongo import MongoClient
 from pymongo.database import Database
@@ -15,39 +15,43 @@ load_dotenv()
 
 class StorageClients(BaseClientManager):
     """
-    存储类客户端：MinIO  Milvus
+    存储类客户端：阿里云 OSS  Milvus
     """
 
-    _minio_client: Optional[Minio] = None
-    _minio_lock = threading.Lock()
+    _oss_client: Optional["oss2.Bucket"] = None
+    _oss_lock = threading.Lock()
 
     @classmethod
-    def get_minio_client(cls) -> Minio:
-        return cls._get_or_create("_minio_client", cls._minio_lock, cls._create_minio)
+    def get_oss_client(cls) -> "oss2.Bucket":
+        return cls._get_or_create("_oss_client", cls._oss_lock, cls._create_oss)
 
     @classmethod
-    def _create_minio(cls) -> Minio:
+    def _create_oss(cls) -> "oss2.Bucket":
         try:
-            endpoint = cls._require_env("MINIO_ENDPOINT")
-            access_key = cls._require_env("MINIO_ACCESS_KEY")
-            secret_key = cls._require_env("MINIO_SECRET_KEY")
-            bucket_name = cls._require_env("MINIO_BUCKET_NAME")
+            endpoint = cls._require_env("OSS_ENDPOINT")
+            access_key_id = cls._require_env("OSS_ACCESS_KEY_ID")
+            access_key_secret = cls._require_env("OSS_ACCESS_KEY_SECRET")
+            bucket_name = cls._require_env("OSS_BUCKET_NAME")
 
-            client = Minio(endpoint, access_key, secret_key, secure=False)
+            auth = oss2.Auth(access_key_id, access_key_secret)
+            bucket = oss2.Bucket(auth, endpoint, bucket_name)
 
-            if not client.bucket_exists(bucket_name):
-                client.make_bucket(bucket_name)
-                logger.info(f"自动创建存储桶:{bucket_name}")
-            else:
+            # OSS 桶需在控制台预先创建，这里只做存在校验（不自动建桶）
+            try:
+                bucket.get_bucket_info()
                 logger.info(f"存储桶已存在:{bucket_name}")
+            except oss2.exceptions.NoSuchBucket:
+                raise ConnectionError(f"OSS 存储桶不存在，请先在控制台创建:{bucket_name}")
 
-            logger.info(f"MinIO 配置完成")
-            return client
+            logger.info(f"阿里云 OSS 配置完成")
+            return bucket
         except EnvironmentError:
             raise  # 配置缺失，直接上抛
+        except ConnectionError:
+            raise  # 桶不存在，直接上抛
         except Exception as e:
-            logger.error(f"MinIO 客户端初始化失败:{e}")
-            raise ConnectionError(f"MinIO 配置错误:{e}") from e  # from e 保留原始异常的堆栈跟踪信息
+            logger.error(f"阿里云 OSS 客户端初始化失败:{e}")
+            raise ConnectionError(f"阿里云 OSS 配置错误:{e}") from e  # from e 保留原始异常的堆栈跟踪信息
 
     """
      存储类客户端：Milvus

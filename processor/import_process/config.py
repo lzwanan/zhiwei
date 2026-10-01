@@ -73,20 +73,19 @@ class ImportConfig:
         default_factory=lambda: os.getenv("ENTITY_NAME_COLLECTION", "")
     )
 
-    # ==================== MinIO 配置 ====================
-    minio_endpoint: str = field(
-        default_factory=lambda: os.getenv("MINIO_ENDPOINT", "")
+    # ==================== 阿里云 OSS 配置 ====================
+    oss_endpoint: str = field(
+        default_factory=lambda: os.getenv("OSS_ENDPOINT", "")
     )
-    minio_access_key: str = field(
-        default_factory=lambda: os.getenv("MINIO_ACCESS_KEY", "")
+    oss_access_key_id: str = field(
+        default_factory=lambda: os.getenv("OSS_ACCESS_KEY_ID", "")
     )
-    minio_secret_key: str = field(
-        default_factory=lambda: os.getenv("MINIO_SECRET_KEY", "")
+    oss_access_key_secret: str = field(
+        default_factory=lambda: os.getenv("OSS_ACCESS_KEY_SECRET", "")
     )
-    minio_bucket: str = field(
-        default_factory=lambda: os.getenv("MINIO_BUCKET_NAME", "")
+    oss_bucket: str = field(
+        default_factory=lambda: os.getenv("OSS_BUCKET_NAME", "")
     )
-    minio_secure: bool = False
 
     # ==================== 向量配置 ====================
     embedding_dim: int = field(
@@ -138,10 +137,15 @@ class ImportConfig:
 
 
 
-    # http://192.168.6.150:9000/
-    def get_minio_base_url(self):
-        base_protocol = "https://" if self.minio_secure else "http://"
-        return base_protocol + f"{self.minio_endpoint}"
+    # https://{bucket}.oss-cn-hangzhou.aliyuncs.com
+    def get_oss_base_url(self):
+        # OSS 默认 virtual-host 风格：https://{bucket}.{host}；endpoint 可含或不含 scheme，统一剔除后拼 https
+        endpoint = self.oss_endpoint
+        for scheme in ("http://", "https://"):
+            if endpoint.startswith(scheme):
+                endpoint = endpoint[len(scheme):]
+                break
+        return f"https://{self.oss_bucket}.{endpoint}"
 
 
 # ==================== 全局单例 ====================
