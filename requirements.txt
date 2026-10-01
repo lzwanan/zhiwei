@@ -5,6 +5,7 @@ grandalf
 pymilvus
 httpx
 pymongo
+requests
 alibabacloud_docmind_api20220711
 alibabacloud_tea_openapi
 alibabacloud_tea_util
