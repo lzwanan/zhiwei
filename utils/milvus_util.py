@@ -130,6 +130,66 @@ def execute_hybrid_search_query(milvus_client: MilvusClient,
         raise RuntimeError(f"执行Milvus混合搜索失败 (collection={collection_name}): {e}") from e
 
 
+# ------------------------------------------------------------------
+# 执行纯稠密向量检索（百炼 text-embedding 迁移后主用）
+# ------------------------------------------------------------------
+def execute_dense_search(milvus_client: MilvusClient,
+                         collection_name,
+                         dense_vector,
+                         limit=5,
+                         expr=None,
+                         expr_params=None,
+                         output_fields=None,
+                         anns_field="dense_vector",
+                         metric_type="COSINE",
+                         search_params=None):
+    """
+    执行单路稠密向量检索（不含稀疏向量，无需 WeightedRanker）。
+
+    :param milvus_client: Milvus客户端
+    :param collection_name: 集合名称
+    :param dense_vector: 稠密查询向量
+    :param limit: 返回结果数量限制，默认为5
+    :param expr: 过滤表达式，默认为None
+    :param expr_params: 过滤表达式参数，默认为None
+    :param output_fields: 要返回的字段列表，默认为None
+    :param anns_field: 稠密向量字段名，默认 dense_vector
+    :param metric_type: 度量类型，默认 COSINE
+    :param search_params: 额外搜索参数，默认为None
+    :return: 搜索结果
+    :raises ValueError: 参数无效
+    :raises RuntimeError: 搜索执行失败
+    """
+    if milvus_client is None:
+        raise ValueError("milvus_client 不能为 None")
+    if dense_vector is None:
+        raise ValueError("dense_vector 不能为 None")
+
+    try:
+        if output_fields is None:
+            output_fields = ["item_name"]
+
+        params = dict(search_params or {})
+        params["metric_type"] = metric_type
+
+        res = milvus_client.search(
+            collection_name=collection_name,
+            data=[dense_vector],
+            anns_field=anns_field,
+            limit=limit,
+            filter=expr,
+            filter_params=expr_params,
+            output_fields=output_fields,
+            search_params=params,
+        )
+
+        total_hits = sum(len(hits) for hits in res) if res else 0
+        logger.info(f"Milvus 稠密搜索完成，共处理 {len(res) if res else 0} 个查询，总计找到 {total_hits} 个结果")
+        return res
+    except Exception as e:
+        raise RuntimeError(f"执行Milvus稠密搜索失败 (collection={collection_name}): {e}") from e
+
+
 def item_names_filter(item_names: List[str]) -> Tuple[str, Dict[str, Any]]:
     expr = "item_name in {item_names}"
     expr_params = {"item_names": item_names}

@@ -2,8 +2,8 @@ oss2
 langchain-openai
 langgraph
 grandalf
-pymilvus[model]
-sentence-transformers
+pymilvus
+httpx
 pymongo
 alibabacloud_docmind_api20220711
 alibabacloud_tea_openapi

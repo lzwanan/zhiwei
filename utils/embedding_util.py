@@ -1,64 +1,74 @@
-from typing import  List
-from pymilvus.model.hybrid import BGEM3EmbeddingFunction
+"""
+向量嵌入工具（阿里云百炼 text-embedding，纯稠密向量）
+
+迁移说明：
+- 旧实现基于本地 BGE-M3，输出 dense + sparse 混合向量；
+- 新实现对接百炼 text-embedding-v4，仅输出稠密(dense)向量，不再产生稀疏向量。
+"""
+from typing import List, Optional
+
+from openai import OpenAI
 
 
-def generate_bge_m3_hybrid_vectors(model: BGEM3EmbeddingFunction, embedding_documents: List[str],is_query:bool=True):
+def generate_dense_embeddings(
+    client: OpenAI,
+    model: str,
+    texts: List[str],
+    text_type: str = "document",
+    dimensions: Optional[int] = None,
+) -> List[List[float]]:
     """
-    为文本生成混合向量嵌入（稠密 + 稀疏）
+    调用阿里云百炼 text-embedding 生成稠密向量。
+
     Args:
-        embedding_model: BGE-M3嵌入模型
-        embedding_documents: 要生成嵌入的文本列表
+        client: OpenAI 兼容客户端（AIClients.get_embedding_client()）
+        model: embedding 模型名，例如 text-embedding-v4
+        texts: 待编码文本列表
+        text_type: "query"（检索查询）或 "document"（入库文档），
+                   百炼通过该参数区分非对称检索前缀
+        dimensions: 输出向量维度，None 使用模型默认维度
+
     Returns:
-        {"dense": [...], "sparse": [...]}
+        二维稠密向量列表：[[float, ...], ...]，顺序与 texts 对应
+
     Raises:
         ValueError: 输入参数无效
         RuntimeError: 嵌入生成失败
     """
     # 1. 参数校验
-    if not embedding_documents:
-        raise ValueError("embedding_documents 不能为空")
+    if not texts:
+        raise ValueError("texts 不能为空")
 
-    if not all(isinstance(doc, str) and doc.strip() for doc in embedding_documents):
-        raise ValueError("embedding_documents 中存在无效元素（空字符串或非字符串类型）")
+    if not all(isinstance(t, str) and t.strip() for t in texts):
+        raise ValueError("texts 中存在无效元素（空字符串或非字符串类型）")
 
+    if text_type not in ("query", "document"):
+        raise ValueError(f"text_type 非法:{text_type}，仅支持 'query' 或 'document'")
 
-    # 2. 生成嵌入
-    """
-    encode_queries vs encode_documents 区别
-    BGE-M3 采用非对称检索策略，两个方法会在文本前添加不同的指令前缀（instruction prefix），让模型知道当前编码的是"问题"还是"文档"，从而生成更适合匹配的向量。
-    方法               用途          适用场景         输入参数名
-    ----------------------------------------------------------
-    encode_queries   编码查询文本    用户搜索问题      queries
-    encode_documents 编码文档内容    入库存储的文档    documents
-    """
+    # 2. 生成嵌入（百炼通过 extra_body 传递 text_type / dimensions 等非标准参数）
+    extra_body = {"text_type": text_type}
+    if dimensions is not None:
+        extra_body["dimensions"] = dimensions
+
     try:
-        if is_query:
-            embedding_result = model.encode_queries(embedding_documents)
-        else:
-            embedding_result = model.encode_documents(embedding_documents)
+        resp = client.embeddings.create(
+            model=model,
+            input=texts,
+            extra_body=extra_body,
+        )
     except Exception as e:
-        raise RuntimeError(f"BGE-M3 嵌入生成失败: {e}") from e
+        raise RuntimeError(f"百炼 Embedding 生成失败: {e}") from e
 
     # 3. 校验嵌入结果
-    if 'dense' not in embedding_result or 'sparse' not in embedding_result:
-        raise RuntimeError(f"嵌入结果缺少必要字段，实际返回: {list(embedding_result.keys())}")
+    if not resp.data:
+        raise RuntimeError("百炼 Embedding 返回结果为空")
 
-    # 5. 解析稀疏向量（CSR 矩阵 → dict）
-    try:
-        processed_sparse = []
-        csr_array = embedding_result['sparse']
+    # 4. 解析稠密向量
+    embeddings = [item.embedding for item in resp.data]
 
-        for index in range(len(embedding_documents)):
-            start = csr_array.indptr[index]
-            end = csr_array.indptr[index + 1]
-            token_ids = csr_array.indices[start:end].tolist()
-            weights = csr_array.data[start:end].tolist()
-            processed_sparse.append(dict(zip(token_ids, weights)))
-    except (IndexError, AttributeError) as e:
-        raise RuntimeError(f"稀疏向量解析失败（CSR 矩阵结构异常）: {e}") from e
+    if len(embeddings) != len(texts):
+        raise RuntimeError(
+            f"嵌入结果数量({len(embeddings)})与输入文本数量({len(texts)})不一致"
+        )
 
-    # 6. 返回
-    return {
-        "dense": [den.tolist() for den in embedding_result["dense"]],
-        "sparse": processed_sparse
-    }
+    return embeddings

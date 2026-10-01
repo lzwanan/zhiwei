@@ -42,12 +42,12 @@ class ImportConfig:
         default_factory=lambda: {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"}
     )
 
-    # ==================== LLM 配置 ====================
+    # ==================== LLM 配置（阿里云百炼 DashScope） ====================
     openai_api_base: str = field(
         default_factory=lambda: os.getenv("OPENAI_API_BASE", "")
     )
-    openai_api_key: str = field(
-        default_factory=lambda: os.getenv("OPENAI_API_KEY", "")
+    dashscope_api_key: str = field(
+        default_factory=lambda: os.getenv("DASHSCOPE_API_KEY", "")
     )
     vl_model: str = field(
         default_factory=lambda: os.getenv("VL_MODEL", "")
@@ -56,7 +56,15 @@ class ImportConfig:
         default_factory=lambda: os.getenv("ITEM_MODEL", "")
     )
     default_model: str = field(
-        default_factory=lambda: os.getenv("MODEL", "")
+        default_factory=lambda: os.getenv("LLM_DEFAULT_MODEL", "")
+    )
+
+    # ==================== Embedding / Rerank 配置（百炼云端） ====================
+    embedding_model: str = field(
+        default_factory=lambda: os.getenv("EMBEDDING_MODEL", "text-embedding-v4")
+    )
+    rerank_model: str = field(
+        default_factory=lambda: os.getenv("RERANK_MODEL", "gte-rerank")
     )
 
     # ==================== Milvus 配置 ====================
