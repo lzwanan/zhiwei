@@ -9,6 +9,7 @@ from typing import Tuple
 from processor.import_process.base import BaseNode
 from processor.import_process.exceptions import ValidationError, FileProcessingError
 from processor.import_process.state import ImportGraphState
+from utils.client.docmind_client import DocMindClient
 
 
 def _validate_state_input_path(self, state: ImportGraphState) -> Tuple[Path, Path]:
@@ -63,9 +64,47 @@ class PdfToMdNode(BaseNode):
         # 1. 参数校验
         import_file_path_obj, file_dir_obj = _validate_state_input_path(self, state)
 
-        # 2. pdf转md
+        # 2. pdf转md（调用 DocMind），返回生成的 Markdown 文件路径
+        md_path = self._execute_pdf_to_md(import_file_path_obj, file_dir_obj)
 
         # 3. 获取md文件路径
+        if not md_path.exists():
+            raise FileProcessingError(f"DocMind 未生成 Markdown 文件: {md_path}", self.name)
 
         # 4. 修改状态
+        state["md_path"] = str(md_path)
+        state["file_dir"] = str(file_dir_obj)
+        state["pdf_path"] = str(import_file_path_obj.parent)
         return state
+
+    def _execute_pdf_to_md(self, import_file_path_obj: Path, file_dir_obj: Path) -> Path:
+        """
+        调用 DocMind 将 PDF 解析为 Markdown 并落盘
+
+        Args:
+            import_file_path_obj: 待转换的 PDF 文件全路径
+            file_dir_obj: Markdown 输出目录
+
+        Returns:
+            生成的 Markdown 文件路径
+        """
+        cfg = self.config
+        md_path = file_dir_obj / f"{import_file_path_obj.stem}.md"
+
+        client = DocMindClient(
+            enhancement_mode=cfg.docmind_enhancement_mode,
+            llm_enhancement=cfg.docmind_llm_enhancement,
+            poll_interval=cfg.docmind_poll_interval,
+            timeout=cfg.docmind_timeout,
+            layout_step_size=cfg.docmind_layout_step_size,
+        )
+
+        try:
+            markdown = client.parse_to_markdown(import_file_path_obj)
+        except Exception as e:
+            raise FileProcessingError(f"DocMind 解析失败: {e}", self.name)
+
+        file_dir_obj.mkdir(parents=True, exist_ok=True)
+        md_path.write_text(markdown, encoding="utf-8")
+        self.log_step("pdf_to_md", f"DocMind 已输出 Markdown: {md_path}")
+        return md_path

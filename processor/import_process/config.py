@@ -97,6 +97,39 @@ class ImportConfig:
     # ==================== 速率限制 ====================
     requests_per_minute: int = 10  # 图片总结 API 速率限制
 
+    # ==================== DocMind 配置（PDF 转 Markdown，阿里云 POP 通道） ====================
+    docmind_access_key_id: str = field(
+        default_factory=lambda: os.getenv("DOCMIND_ACCESS_KEY_ID", "")
+    )
+    docmind_access_key_secret: str = field(
+        default_factory=lambda: os.getenv("DOCMIND_ACCESS_KEY_SECRET", "")
+    )
+    docmind_endpoint: str = field(
+        default_factory=lambda: os.getenv(
+            "DOCMIND_ENDPOINT", "docmind-api.cn-hangzhou.aliyuncs.com"
+        )
+    )
+    # 增强模式：留空/AUTO/BASE=基础链路；VLM=多模态大模型增强（需配合 docmind_llm_enhancement）
+    docmind_enhancement_mode: str = field(
+        default_factory=lambda: os.getenv("DOCMIND_ENHANCEMENT_MODE", "AUTO")
+    )
+    # 是否开启 LLM 增强（语义理解/内容增强）
+    docmind_llm_enhancement: bool = field(
+        default_factory=lambda: os.getenv("DOCMIND_LLM_ENHANCEMENT", "false").lower() in ("true", "1")
+    )
+    # 状态轮询间隔（秒）
+    docmind_poll_interval: int = field(
+        default_factory=lambda: int(os.getenv("DOCMIND_POLL_INTERVAL", "5"))
+    )
+    # 单个文档解析超时（秒）
+    docmind_timeout: int = field(
+        default_factory=lambda: int(os.getenv("DOCMIND_TIMEOUT", "600"))
+    )
+    # 结果分页拉取步长
+    docmind_layout_step_size: int = field(
+        default_factory=lambda: int(os.getenv("DOCMIND_LAYOUT_STEP_SIZE", "200"))
+    )
+
     #创建实例对象
     @classmethod
     def from_env(cls) -> "ImportConfig":

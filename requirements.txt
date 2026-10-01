@@ -5,5 +5,8 @@ grandalf
 pymilvus[model]
 sentence-transformers
 pymongo
-mineru[all]
+alibabacloud_docmind_api20220711
+alibabacloud_tea_openapi
+alibabacloud_tea_util
+alibabacloud_credentials
 openai-agents
