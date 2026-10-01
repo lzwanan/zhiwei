@@ -1,0 +1,27 @@
+# 统一行尾：默认自动识别文本并规范为 LF 入库
+* text=auto eol=lf
+
+# 明确按文本处理（LF）
+*.py    text eol=lf
+*.md    text eol=lf
+*.txt   text eol=lf
+*.html  text eol=lf
+*.json  text eol=lf
+*.xml   text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+.env    text eol=lf
+
+# Windows 专用脚本保留 CRLF
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# 二进制文件不做行尾转换
+*.pdf   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.bmp   binary
+*.webp  binary
+*.ico   binary
