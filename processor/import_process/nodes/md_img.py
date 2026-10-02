@@ -400,7 +400,12 @@ class ImageUploader:
         for img in image_list:
             object_name = f"{document_name}/{img.name}"
             try:
-                oss_bucket.put_object_from_file(object_name, img.path)
+                # 上传同时把对象 ACL 设为 public-read（桶保持私有），
+                # 保证写入 Markdown 的静态 URL 可被前端/浏览器直接访问
+                oss_bucket.put_object_from_file(
+                    object_name, img.path,
+                    headers={"x-oss-object-acl": "public-read"},
+                )
                 remote_url = f"{oss_base_url}/{object_name}"
                 self.logger.info(f"{img.name} 上传成功")
                 remote_urls[img.name] = remote_url
