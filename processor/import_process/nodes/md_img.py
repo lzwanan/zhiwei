@@ -3,15 +3,23 @@ MarkDown图片处理节点
 
 将MarkDownImageNode 中的逻辑拆分为四个职责单一的协作类，统一调度。
 """
+import base64
+import logging
 import re
+import time
+from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Set, Tuple
+from typing import List, Set, Tuple, Dict, Deque
+
+from openai import OpenAI
 
 from core.exceptions import StateFieldError
 from processor.import_process.base import BaseNode
-from processor.import_process.exceptions import FileProcessingError
+from processor.import_process.exceptions import FileProcessingError, ImageProcessingError
 from processor.import_process.state import ImportGraphState
+from utils.client.ai_clients import AIClients
+from utils.client.storage_clients import StorageClients
 
 
 @dataclass
@@ -62,9 +70,22 @@ class MdFileHandler:
         # 图片统一存放在 MD 同级目录下的 images 子目录
         return md_content, md_path_obj, md_path_obj.parent / "images"
 
-    def backup(self):
-        """处理完成后对 MD 文件进行备份（待实现）。"""
-        pass
+    def backup(self, md_path_obj: Path, new_md_content: str) -> str:
+        self.logger.info("【step_5】备份新文件")
+
+        new_file_path = md_path_obj.with_name(
+            f"{md_path_obj.stem}_new{md_path_obj.suffix}"
+        )
+        try:
+            with open(new_file_path, "w", encoding="utf-8") as f:
+                f.write(new_md_content)
+            self.logger.info(f"处理后的文件已备份至: {new_file_path}")
+        except IOError as e:
+            self.logger.error(f"写入新文件失败 {new_file_path}: {e}")
+            raise ImageProcessingError(
+                f"文件写入失败: {e}", node_name="md_img_node"
+            )
+        return str(new_file_path)
 
 
 class ImageScanner:
@@ -211,23 +232,206 @@ class ImageScanner:
 
 
 class VLMSummarizer:
-    """
-    通过视觉语言模型为每张图片生成中文标题/摘要。
-    """
+    """通过阿里百炼视觉语言模型（DashScope 兼容模式）为每张图片生成中文标题/摘要。"""
 
-    def summarizer_all(self):
-        """批量调用 VLM 为所有图片生成中文标题/摘要（待实现）。"""
-        pass
+    # 图片扩展名 -> data URL 的 MIME 类型，供多模态请求正确声明图像格式
+    _MIME_MAP: Dict[str, str] = {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".gif": "image/gif",
+        ".bmp": "image/bmp",
+        ".webp": "image/webp",
+    }
+
+    def __init__(self, logger: logging.Logger, name: str = "md_img_node"):
+        self.logger = logger
+        self.name = name
+
+    def summarize_all(
+            self,
+            document_title: str,
+            image_list: List[ImageInfo],
+            vl_model: str,
+            requests_per_minute: int,
+    ) -> Dict[str, str]:
+        self.logger.info("【step_3】提取图片摘要")
+
+        summaries: Dict[str, str] = {}
+        request_timestamps: Deque[float] = deque()
+
+        try:
+            client = AIClients.get_openai()
+        except Exception as e:
+            self.logger.warning(
+                f"VLM 不可用，跳过图片摘要生成: {e}"
+            )
+            for img in image_list:
+                summaries[img.name] = "图片描述"
+            return summaries
+
+        for img in image_list:
+            self._enforce_rate_limit(
+                request_timestamps, requests_per_minute
+            )
+            summaries[img.name] = self._summarize_one(
+                client, vl_model, document_title, img
+            )
+
+        self.logger.info(f"生成 {len(summaries)} 张图片摘要")
+        return summaries
+
+    def _summarize_one(
+            self, client: OpenAI, vl_model: str,
+            document_title: str, img: ImageInfo,
+    ) -> str:
+        parts = [p for p in (
+            img.context.heading,
+            img.context.pre_text,
+            img.context.post_text
+        ) if p]
+        final_context = "\n".join(parts) if parts else "暂无可用上下文"
+
+        try:
+            with open(img.path, "rb") as f:
+                b64 = base64.b64encode(f.read()).decode("utf-8")
+        except Exception:
+            return "暂无图片"
+
+        # 依据实际扩展名声明 MIME 类型，未知时回退为 jpeg
+        mime = self._MIME_MAP.get(
+            Path(img.path).suffix.lower(), "image/jpeg"
+        )
+
+        try:
+            resp = client.chat.completions.create(
+                model=vl_model,
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": (
+                                f"任务：为Markdown文档中的图片生成一个简短的中文标题。\n"
+                                f"背景信息：\n"
+                                f"  1. 所属文档标题：\"{document_title}\"\n"
+                                f"  2. 图片上下文：{final_context}\n"
+                                f"请结合图片内容和上述上下文信息，"
+                                f"用中文简要总结这张图片的内容，"
+                                f"生成一个精准的中文标题（不要包含图片二字）。"
+                            ),
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:{mime};base64,{b64}"
+                            },
+                        },
+                    ],
+                }],
+            )
+            return resp.choices[0].message.content.strip()
+        except Exception as e:
+            self.logger.warning(f"图片摘要生成失败 {img.path}: {e}")
+            return "图片描述"
+
+    def _enforce_rate_limit(
+            self, timestamps: Deque[float],
+            max_requests: int, window: int = 60,
+    ):
+        now = time.time()
+        while timestamps and now - timestamps[0] >= window:
+            timestamps.popleft()
+
+        if len(timestamps) >= max_requests:
+            sleep_dur = window - (now - timestamps[0])
+            if sleep_dur > 0:
+                self.logger.info(
+                    f"达到速率限制，暂停 {sleep_dur:.2f} 秒..."
+                )
+                time.sleep(sleep_dur)
+            now = time.time()
+            while timestamps and now - timestamps[0] >= window:
+                timestamps.popleft()
+
+        timestamps.append(now)
 
 
 class ImageUploader:
-    """
-    上传图片到OSS 并在 MD 内容中替换为远程 URL + 摘要
-    """
+    """将本地图片上传至阿里云 OSS，并在 MD 内容中替换为远程 URL + 摘要。"""
 
-    def upload_and_replace(self):
-        """上传图片到 OSS，并在 MD 中将本地路径替换为远程 URL + 摘要（待实现）。"""
-        pass
+    def __init__(self, logger: logging.Logger, name: str = "md_img_node"):
+        self.logger = logger
+        self.name = name
+
+    def upload_and_replace(
+            self, document_name: str, md_content: str,
+            images_summaries: Dict[str, str],
+            image_list: List[ImageInfo],
+            oss_base_url: str,
+    ) -> str:
+        self.logger.info("【step_4】上传图片到阿里云 OSS 并更新MD")
+
+        remote_urls = self._upload_all(
+            document_name, image_list, oss_base_url
+        )
+        return self._replace_in_md(
+            md_content, images_summaries, remote_urls
+        )
+
+    def _upload_all(
+            self, document_name: str, image_list: List[ImageInfo],
+            oss_base_url: str,
+    ) -> Dict[str, str]:
+        remote_urls: Dict[str, str] = {}
+
+        # OSS 客户端为惰性单例，桶名已在初始化时绑定，此处仅需传入 object key
+        try:
+            oss_bucket = StorageClients.get_oss_client()
+        except Exception as e:
+            self.logger.warning(
+                f"阿里云 OSS 不可用，所有图片保留本地路径: {e}"
+            )
+            for img in image_list:
+                remote_urls[img.name] = img.path
+            return remote_urls
+
+        for img in image_list:
+            object_name = f"{document_name}/{img.name}"
+            try:
+                oss_bucket.put_object_from_file(object_name, img.path)
+                remote_url = f"{oss_base_url}/{object_name}"
+                self.logger.info(f"{img.name} 上传成功")
+                remote_urls[img.name] = remote_url
+            except Exception as e:
+                self.logger.warning(
+                    f"{img.name} 上传失败，保留本地路径: {e}"
+                )
+                remote_urls[img.name] = img.path
+
+        self.logger.info(
+            f"成功处理 {len(remote_urls)} 张图片（上传至阿里云 OSS）"
+        )
+        return remote_urls
+
+    @staticmethod
+    def _replace_in_md(
+            md_content: str,
+            summaries: Dict[str, str],
+            remote_urls: Dict[str, str],
+    ) -> str:
+        """替换 MD 中的图片引用为远程 URL + 摘要。"""
+        pattern = re.compile(r"!\[(.*?)\]\((.*?)\)")
+
+        def replacer(match: re.Match) -> str:
+            original_path = match.group(2).strip()
+            file_name_in_md = Path(original_path).name
+            for img_name, summary in summaries.items():
+                if img_name == file_name_in_md:
+                    return f"![{summary}]({remote_urls[img_name]})"
+            return match.group(0)
+
+        return pattern.sub(replacer, md_content)
 
 
 class MdImgNode(BaseNode):
@@ -243,31 +447,49 @@ class MdImgNode(BaseNode):
 
     def __init__(self):
         super().__init__()
-        self.md_file_handler = MdFileHandler(self.logger, self.name)
-        self.image_scanner = ImageScanner(self.logger, self.name)
-        self.vlm_summarizer = VLMSummarizer(self.logger, self.name)
-        self.image_uploader = ImageUploader(self.logger, self.name)
+        self.file_handler = MdFileHandler(self.logger, self.name)
+        self.scanner = ImageScanner(self.logger, self.name)
+        self.summarizer = VLMSummarizer(self.logger, self.name)
+        self.uploader = ImageUploader(self.logger, self.name)
 
     name = "md_img_node"
 
     def process(self, state: ImportGraphState) -> ImportGraphState:
         # 1. 文件处理 -->  MD 文件的读取、路径校验、图片目录构建以及处理后备份
-        md_content, md_path_obj, image_dir = self.md_file_handler.read_md(state)
+        md_content, md_path_obj, image_dir = self.file_handler.read_md(state)
         if not image_dir.exists():
             self.logger.warning(f"文件 {md_path_obj.name} 暂无图片要处理")
             state['md_content'] = md_content
             return state
 
         # 2. 获取图片上下文 --> 扫描图片目录，提取每张图片在 MD 中的上下文信息
-        image_list = self.image_scanner.scan_img_dir(
+        image_list = self.scanner.scan_img_dir(
             image_dir, md_content,
             image_extensions=self.config.image_extensions,
             context_length=self.config.img_content_length,
         )
-        # 3. 通过VLM生成图片摘要 --> 通过视觉语言模型为每张图片生成中文标题/摘要
 
-        # 4. 图片上传, 替换文件路径, 并插入摘要信息 --> 上传图片到OSS
+        # 3. 通过VLM生成图片摘要 --> 通过视觉语言模型为每张图片生成中文标题/摘要
+        summaries = self.summarizer.summarize_all(
+            document_title=md_path_obj.stem,
+            image_list=image_list,
+            vl_model=self.config.vl_model,
+            requests_per_minute=self.config.requests_per_minute,
+        )
+
+        # 4. 图片上传, 替换文件路径, 并插入摘要信息 --> 上传图片到阿里云 OSS
+        new_md_content = self.uploader.upload_and_replace(
+            document_name=md_path_obj.stem,
+            md_content=md_content,
+            images_summaries=summaries,
+            image_list=image_list,
+            oss_base_url=self.config.get_oss_base_url(),
+        )
 
         # 5. 文档备份 --> 备份替换后的md文档
+        # 5. 备份
+        self.file_handler.backup(md_path_obj, new_md_content)
 
+        # 6. 更新并返回 state
+        state["md_content"] = new_md_content
         return state
