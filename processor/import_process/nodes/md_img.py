@@ -18,6 +18,7 @@ from core.exceptions import StateFieldError
 from processor.import_process.base import BaseNode
 from processor.import_process.exceptions import FileProcessingError, ImageProcessingError
 from processor.import_process.state import ImportGraphState
+from processor.import_process.nodes.pdf_to_md import _IMAGE_DIR_NAME
 from utils.client.ai_clients import AIClients
 from utils.client.storage_clients import StorageClients
 
@@ -67,8 +68,8 @@ class MdFileHandler:
         with open(md_path_obj, 'r', encoding='utf-8') as f:
             md_content = f.read()
 
-        # 图片统一存放在 MD 同级目录下的 images 子目录
-        return md_content, md_path_obj, md_path_obj.parent / "images"
+        # 图片统一存放在 MD 同级目录下的 image 子目录（与 pdf_to_md 本地化目录名保持一致）
+        return md_content, md_path_obj, md_path_obj.parent / _IMAGE_DIR_NAME
 
     def backup(self, md_path_obj: Path, new_md_content: str) -> str:
         self.logger.info("【step_5】备份新文件")

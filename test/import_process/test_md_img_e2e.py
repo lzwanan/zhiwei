@@ -32,6 +32,7 @@ load_dotenv(PROJECT_ROOT / ".env")
 
 from processor.import_process.config import get_config  # noqa: E402
 from processor.import_process.nodes.md_img import MdImgNode  # noqa: E402
+from processor.import_process.nodes.pdf_to_md import _IMAGE_DIR_NAME  # noqa: E402
 from processor.import_process.state import create_default_state  # noqa: E402
 from utils.client.storage_clients import StorageClients  # noqa: E402
 
@@ -42,17 +43,17 @@ WORKSPACE = PROJECT_ROOT / "test" / "temp_dir" / "md_img_e2e"
 
 
 def _build_workspace() -> Path:
-    """构造 <workspace>/doc.md + <workspace>/images/001_3.png。"""
+    """构造 <workspace>/doc.md + <workspace>/image/001_3.png。"""
     if WORKSPACE.exists():
         shutil.rmtree(WORKSPACE)
-    images_dir = WORKSPACE / "images"
+    images_dir = WORKSPACE / _IMAGE_DIR_NAME
     images_dir.mkdir(parents=True)
     shutil.copy2(SRC_IMAGE, images_dir / SRC_IMAGE.name)
 
     md_text = (
         "# 1.2 配置LA2608与无线控制器互通\n\n"
-        "如图1所示，LA2608安装了SIM卡，通过3G/4G网络连接到运营商无线控制器。\n\n"
-        f"![b48a9c4e](images/{SRC_IMAGE.name})\n\n"
+        "如图1所示，LA2608安装了SIM卡，通过 3G/4G网络连接到运营商无线控制器。\n\n"
+        f"![b48a9c4e]({_IMAGE_DIR_NAME}/{SRC_IMAGE.name})\n\n"
         "配置LA2608与无线控制器互通的网络拓扑。\n"
     )
     md_path = WORKSPACE / "doc.md"
@@ -97,7 +98,7 @@ def main() -> int:
 
         checks = {
             "md_content 含 OSS 远程 URL": oss_url in new_content,
-            "本地相对路径已被替换": "images/001_3.png" not in new_content,
+            "本地相对路径已被替换": f"{_IMAGE_DIR_NAME}/{SRC_IMAGE.name}" not in new_content,
             "生成 *_new.md 备份文件": backup_path.exists(),
         }
 
