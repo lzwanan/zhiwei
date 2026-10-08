@@ -30,7 +30,7 @@ from processor.import_process.nodes.bge_embedding import BgeEmbeddingNode
 from processor.import_process.nodes.ducment_split import DocumentSplitNode
 from processor.import_process.nodes.entry import EntryNode
 from processor.import_process.nodes.import_milvus import ImportMilvusNode
-from processor.import_process.nodes.item_name_recognition import ItemNameRecNode
+from processor.import_process.nodes.item_name_recognition import ItemNameRecognitionNode
 from processor.import_process.nodes.md_img import MdImgNode
 from processor.import_process.nodes.pdf_to_md import PdfToMdNode
 from processor.import_process.state import ImportGraphState, create_default_state
@@ -70,7 +70,7 @@ def create_import_graph() -> CompiledStateGraph:
         "pdf_to_md_node": PdfToMdNode(),
         "md_img_node": MdImgNode(),
         "document_split_node": DocumentSplitNode(),
-        "item_name_rec_node": ItemNameRecNode(),
+        "item_name_rec_node": ItemNameRecognitionNode(),
         "bge_embedding_node": BgeEmbeddingNode(),
         "import_milvus_node": ImportMilvusNode(),
     }
