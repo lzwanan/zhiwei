@@ -110,7 +110,7 @@ def execute_hybrid_search_query(milvus_client: MilvusClient,
 
         # 默认输出字段
         if output_fields is None:
-            output_fields = ["item_name"]
+            output_fields = ["subject"]
 
         # 执行搜索
         res = milvus_client.hybrid_search(
@@ -167,7 +167,7 @@ def execute_dense_search(milvus_client: MilvusClient,
 
     try:
         if output_fields is None:
-            output_fields = ["item_name"]
+            output_fields = ["subject"]
 
         params = dict(search_params or {})
         params["metric_type"] = metric_type
@@ -190,7 +190,7 @@ def execute_dense_search(milvus_client: MilvusClient,
         raise RuntimeError(f"执行Milvus稠密搜索失败 (collection={collection_name}): {e}") from e
 
 
-def item_names_filter(item_names: List[str]) -> Tuple[str, Dict[str, Any]]:
-    expr = "item_name in {item_names}"
-    expr_params = {"item_names": item_names}
+def subjects_filter(subjects: List[str]) -> Tuple[str, Dict[str, Any]]:
+    expr = "subject in {subjects}"
+    expr_params = {"subjects": subjects}
     return expr, expr_params

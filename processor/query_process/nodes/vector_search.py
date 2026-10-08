@@ -9,7 +9,7 @@ class VectorSearchNode(BaseNode):
 
     输入 state:
         - original_query / rewritten_query: 查询文本
-        - item_names: 用于过滤的项目名称（可选）
+        - subjects: 用于过滤的主题实体（可选）
     输出 state:
         - embedding_chunks: 稠密向量检索结果列表
 

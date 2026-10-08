@@ -10,7 +10,7 @@ class AnswerOutputNode(BaseNode):
     输入 state:
         - original_query / rewritten_query: 查询文本
         - reranked_docs: 重排序后的文档
-        - item_names: 项目名称
+        - subjects: 主题实体
         - history / is_stream / task_id / session_id / message_id
     输出 state:
         - prompt: 拼装后的提示词

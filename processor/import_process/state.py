@@ -54,7 +54,11 @@ class ImportGraphState(TypedDict, total=False):
 
     file_title: str  # 文件标题（不含扩展名）
 
-    item_name: str  # 识别出的项目/产品名称(方便程序员用)
+    subject: str  # 识别出的文档主题实体（产品/项目/制度/系统/流程等，通用）
+
+    doc_type: str  # 文档类型（操作手册/制度规范/流程SOP/...）
+
+    domain: str  # 业务领域（研发/产品/市场/财务/...）
 
     # ==================== 处理中间数据 ====================
 
@@ -89,7 +93,11 @@ GRAPH_DEFAULT_STATE: ImportGraphState = {
 
     "chunks": [],
 
-    "item_name": "",
+    "subject": "",
+
+    "doc_type": "",
+
+    "domain": "",
 
 }
 

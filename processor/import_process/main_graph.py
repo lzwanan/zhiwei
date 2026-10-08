@@ -10,7 +10,7 @@
                                       document_split_node
                                               │
                                               v
-                                      item_name_rec_node
+                                      subject_rec_node
                                               │
                                               v
                                         bge_embedding_node
@@ -30,7 +30,7 @@ from processor.import_process.nodes.bge_embedding import BgeEmbeddingNode
 from processor.import_process.nodes.ducment_split import DocumentSplitNode
 from processor.import_process.nodes.entry import EntryNode
 from processor.import_process.nodes.import_milvus import ImportMilvusNode
-from processor.import_process.nodes.item_name_recognition import ItemNameRecognitionNode
+from processor.import_process.nodes.subject_recognition import SubjectRecognitionNode
 from processor.import_process.nodes.md_img import MdImgNode
 from processor.import_process.nodes.pdf_to_md import PdfToMdNode
 from processor.import_process.state import ImportGraphState, create_default_state
@@ -70,7 +70,7 @@ def create_import_graph() -> CompiledStateGraph:
         "pdf_to_md_node": PdfToMdNode(),
         "md_img_node": MdImgNode(),
         "document_split_node": DocumentSplitNode(),
-        "item_name_rec_node": ItemNameRecognitionNode(),
+        "subject_rec_node": SubjectRecognitionNode(),
         "bge_embedding_node": BgeEmbeddingNode(),
         "import_milvus_node": ImportMilvusNode(),
     }
@@ -92,8 +92,8 @@ def create_import_graph() -> CompiledStateGraph:
     # 5. 添加顺序边
     graph.add_edge("pdf_to_md_node", "md_img_node")
     graph.add_edge("md_img_node", "document_split_node")
-    graph.add_edge("document_split_node", "item_name_rec_node")
-    graph.add_edge("item_name_rec_node", "bge_embedding_node")
+    graph.add_edge("document_split_node", "subject_rec_node")
+    graph.add_edge("subject_rec_node", "bge_embedding_node")
     graph.add_edge("bge_embedding_node", "import_milvus_node")
     graph.add_edge("import_milvus_node", END)
 
@@ -139,7 +139,7 @@ if __name__ == "__main__":
         运行节点: entry_node
         运行节点: pdf_to_md_node
         运行节点: document_split_node
-        运行节点: item_name_rec_node
+        运行节点: subject_rec_node
         运行节点: bge_embedding_node
         运行节点: import_milvus_node
         {
@@ -151,7 +151,7 @@ if __name__ == "__main__":
           "pdf_path": "",
           "md_path": "",
           "file_title": "",
-          "item_name": "",
+          "subject": "",
           "md_content": "",
           "chunks": []
         }
@@ -182,7 +182,7 @@ if __name__ == "__main__":
                              *                                           . 
                              *                                           . 
                   +--------------------+                                 . 
-                  | item_name_rec_node |                                 . 
+                  | subject_rec_node |                                 . 
                   +--------------------+                                 . 
                              *                                           . 
                              *                                           . 

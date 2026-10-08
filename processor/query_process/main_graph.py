@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 
 from processor.query_process.state import QueryGraphState
 from processor.query_process.nodes.answer_output import AnswerOutputNode
-from processor.query_process.nodes.item_name_confirm import ItemNameConfirmNode
+from processor.query_process.nodes.subject_confirm import SubjectConfirmNode
 from processor.query_process.nodes.vector_search import VectorSearchNode
 from processor.query_process.nodes.hyde_search import HyDeSearchNode
 from processor.query_process.nodes.rrf import RrfNode
@@ -27,8 +27,8 @@ from processor.query_process.nodes.web_search_mcp import WebSearchMcpNode
 load_dotenv()
 
 
-def route_after_item_confirm(state: QueryGraphState) -> bool:
-    """项目名称确认后的路由逻辑。
+def route_after_subject_confirm(state: QueryGraphState) -> bool:
+    """主题实体确认后的路由逻辑。
 
     根据是否已有答案决定是否跳过搜索直接输出。
 
@@ -51,7 +51,7 @@ def create_query_graph() -> CompiledStateGraph:
 
     流程结构::
 
-        item_name_confirm
+        subject_confirm
               │
               ├── (有答案) ──────────────────────────> answer_output
               │                                            │
@@ -90,7 +90,7 @@ def create_query_graph() -> CompiledStateGraph:
 
     # 2. 实例化节点
     nodes = {
-        "item_name_confirm": ItemNameConfirmNode(),
+        "subject_confirm": SubjectConfirmNode(),
         "multi_search": lambda x: x,   # 虚拟节点（分发）
         "search_embedding": VectorSearchNode(),
         "search_embedding_hyde": HyDeSearchNode(),
@@ -106,12 +106,12 @@ def create_query_graph() -> CompiledStateGraph:
         workflow.add_node(name, node)
 
     # 4. 设置入口点
-    workflow.set_entry_point("item_name_confirm")
+    workflow.set_entry_point("subject_confirm")
 
-    # 5. 添加条件边：项目名称确认后根据是否有答案路由
+    # 5. 添加条件边：主题实体确认后根据是否有答案路由
     workflow.add_conditional_edges(
-        "item_name_confirm",
-        route_after_item_confirm,
+        "subject_confirm",
+        route_after_subject_confirm,
         {
             False: "multi_search",
             True: "answer_output"
@@ -170,7 +170,7 @@ if __name__ == "__main__":
     #与LLM中的llm.invoke()和 llm.stream()的作用不同。llm.stream()表示流式输出。
 
     print(f"\n  【结果】:")
-    print(f"  项目名: {result_1.get('item_names')}")
+    print(f"  主题: {result_1.get('subjects')}")
     print(f"  重写查询: {result_1.get('rewritten_query')}")
     answer_1 = result_1.get("answer", "")
     print(f"  答案: {answer_1[:200]}..." if len(answer_1) > 200 else f"  答案: {answer_1}")

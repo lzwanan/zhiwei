@@ -49,21 +49,21 @@ class QueryConfig:
         default_factory=lambda: int(os.getenv("HYDE_SEARCH_LIMIT", "5"))
     )
 
-    # ==================== 项目确认节点配置 ====================
-    item_name_high_confidence: float = field(
-        default_factory=lambda: float(os.getenv("ITEM_NAME_HIGH_CONFIDENCE", "0.7"))
+    # ==================== 主题确认节点配置 ====================
+    subject_high_confidence: float = field(
+        default_factory=lambda: float(os.getenv("SUBJECT_HIGH_CONFIDENCE", "0.7"))
     )
-    item_name_mid_confidence: float = field(
-        default_factory=lambda: float(os.getenv("ITEM_NAME_MID_CONFIDENCE", "0.6"))
+    subject_mid_confidence: float = field(
+        default_factory=lambda: float(os.getenv("SUBJECT_MID_CONFIDENCE", "0.6"))
     )
-    item_name_max_options: int = field(
-        default_factory=lambda: int(os.getenv("ITEM_NAME_MAX_OPTIONS", "5"))
+    subject_max_options: int = field(
+        default_factory=lambda: int(os.getenv("SUBJECT_MAX_OPTIONS", "5"))
     )
-    item_name_dense_weight: float = field(
-        default_factory=lambda: float(os.getenv("ITEM_NAME_DENSE_WEIGHT", "0.5"))
+    subject_dense_weight: float = field(
+        default_factory=lambda: float(os.getenv("SUBJECT_DENSE_WEIGHT", "0.5"))
     )
-    item_name_sparse_weight: float = field(
-        default_factory=lambda: float(os.getenv("ITEM_NAME_SPARSE_WEIGHT", "0.5"))
+    subject_sparse_weight: float = field(
+        default_factory=lambda: float(os.getenv("SUBJECT_SPARSE_WEIGHT", "0.5"))
     )
 
     # ==================== LLM 配置（阿里云百炼 DashScope） ====================
@@ -76,8 +76,8 @@ class QueryConfig:
     default_model: str = field(
         default_factory=lambda: os.getenv("LLM_DEFAULT_MODEL", "")
     )
-    item_model: str = field(
-        default_factory=lambda: os.getenv("ITEM_MODEL", "")
+    subject_model: str = field(
+        default_factory=lambda: os.getenv("SUBJECT_MODEL", "")
     )
 
     # ==================== Embedding / Rerank 配置（百炼云端） ====================
@@ -95,8 +95,8 @@ class QueryConfig:
     chunks_collection: str = field(
         default_factory=lambda: os.getenv("CHUNKS_COLLECTION", "")
     )
-    item_name_collection: str = field(
-        default_factory=lambda: os.getenv("ITEM_NAME_COLLECTION", "")
+    subject_collection: str = field(
+        default_factory=lambda: os.getenv("SUBJECT_COLLECTION", "")
     )
     entity_name_collection: str = field(
         default_factory=lambda: os.getenv("ENTITY_NAME_COLLECTION", "")

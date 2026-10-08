@@ -176,9 +176,9 @@ class AIClients(BaseClientManager):
         return cls.get_llm_openai("VL_MODEL", response_format=False)
 
     @classmethod
-    def get_item_llm(cls) -> ChatOpenAI:
-        """项目名识别模型（ITEM_MODEL），输出 JSON。"""
-        return cls.get_llm_openai("ITEM_MODEL", response_format=True)
+    def get_subject_llm(cls) -> ChatOpenAI:
+        """文档主题元数据识别模型（SUBJECT_MODEL），输出 JSON。"""
+        return cls.get_llm_openai("SUBJECT_MODEL", response_format=True)
 
     @classmethod
     def get_kg_llm(cls) -> ChatOpenAI:

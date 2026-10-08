@@ -20,7 +20,7 @@ def save_chat_message(
         role: str,
         text: str,
         rewritten_query: str = "",
-        item_names: List[str] = None,
+        subjects: List[str] = None,
         message_id: str = None,
 ) -> str:
     """
@@ -31,7 +31,7 @@ def save_chat_message(
         role:
         text:
         rewritten_query:
-        item_names:
+        subjects:
         message_id:
 
     Returns:
@@ -45,7 +45,7 @@ def save_chat_message(
         "role": role,  # 角色
         "text": text,  # 内容
         "rewritten_query": rewritten_query,  # 重写后问题
-        "item_names": item_names or [],  # 项目名列表
+        "subjects": subjects or [],  # 主题实体列表
         "ts": ts,  # 时间戳
     }
 
@@ -85,6 +85,6 @@ def clear_history(session_id: str) -> int:
         logger.error(f"Error clearing history for session {session_id}: {e}")
         return 0
 
-def update_message_item_names(ids_to_update, confirmed):
+def update_message_subjects(ids_to_update, confirmed):
     #TODO 待实现
     pass

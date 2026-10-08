@@ -53,10 +53,10 @@ class RerankError(QueryProcessError):
     pass
 
 
-class ItemNameConfirmError(QueryProcessError):
-    """项目名称确认错误。
+class SubjectConfirmError(QueryProcessError):
+    """主题实体确认错误。
 
-    项目名称识别或确认过程失败时抛出。
+    主题实体识别或确认过程失败时抛出。
     """
     pass
 
@@ -75,5 +75,5 @@ __all__ = [
     "ValidationError",
     "EntityAlignmentError",
     "RerankError",
-    "ItemNameConfirmError",
+    "SubjectConfirmError",
 ]
