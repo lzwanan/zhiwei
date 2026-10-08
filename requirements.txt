@@ -11,3 +11,4 @@ alibabacloud_tea_openapi
 alibabacloud_tea_util
 alibabacloud_credentials
 openai-agents
+langchain-text-splitters
